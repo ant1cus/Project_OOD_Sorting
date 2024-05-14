@@ -43,7 +43,7 @@ class InsertTableData(QThread):  # Если требуется вставить 
             files = [file for file in os.listdir(self.start_path) if file.endswith('.docx') and '~' not in file]
             files = natsorted(files, key=lambda y: y.rpartition(' ')[2][:-5])
             percent = 100/len(files)
-            df = pd.read_csv(self.path_file, delimiter='|', encoding='ANSI', header=None, converters={11: str})
+            df = pd.read_csv(self.path_file, delimiter='|', encoding='ANSI', header=None, converters={0: str, 11: str})
             self.logging.info('DataFrame заполнен')
             serial_number = ''
             incoming_errors = []
@@ -133,7 +133,7 @@ class InsertTableData(QThread):  # Если требуется вставить 
                     if serial_number:
                         index_serial_num = df[df[11] == serial_number].index.tolist()
                     if set_number:
-                        index_set_num = df[df[0] == round(float(set_number), 5)].index.tolist()
+                        index_set_num = df[df[0] == set_number].index.tolist()
                     self.logging.info(f'Поиск по выгрузке индексов:\n'
                                       f'Результат по серийному номеру: {index_serial_num}\n'
                                       f'Результат по номеру комплекта: {index_set_num}')
