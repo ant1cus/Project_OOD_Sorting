@@ -32,14 +32,14 @@ class GetReport(QThread):  # Если требуется вставить кол
             self.logging.info("\n***********************************Report***********************************\n")
             logs_files = {os.path.getctime(pathlib.Path('logs', file)): file
                           for file in os.listdir(pathlib.Path('logs'))}
-            logs_files = dict(sorted(logs_files.items()))
+            logs_files = dict(sorted(logs_files.items(), reverse=True))
             if len(logs_files) == 0 or (len(logs_files) == 1 and
                                         os.path.getsize(pathlib.Path('logs',
                                                                      logs_files[list(logs_files.keys())[0]])) == 0):
                 raise MyException('Нет файлов для формирования отчёта, логи удалены или программа ни разу не работала')
             data_for_report = ''
             self.logging.info('Считываем файл лога для получения информации')
-            for file in reversed(logs_files):
+            for file in logs_files:
                 for_report = False
                 with open(pathlib.Path('logs', logs_files[file]), 'r') as f:
                     lines = f.readlines()

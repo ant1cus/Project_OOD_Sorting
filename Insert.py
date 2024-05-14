@@ -43,17 +43,18 @@ class InsertTableData(QThread):  # Если требуется вставить 
             files = [file for file in os.listdir(self.start_path) if file.endswith('.docx') and '~' not in file]
             files = natsorted(files, key=lambda y: y.rpartition(' ')[2][:-5])
             percent = 100/len(files)
-            df = pd.read_csv(self.path_file, delimiter='|', encoding='ANSI', header=None)
+            df = pd.read_csv(self.path_file, delimiter='|', encoding='ANSI', header=None, converters={11: str})
             self.logging.info('DataFrame заполнен')
             serial_number = ''
             incoming_errors = []
             set_number = 0
             # Проверка если есть 0 в серийнике, чтобы не падала и заполняла по среднему
             err_append = False
+            df[11] = [None if len(element) == 0 else element for element in df[11]]
             if df[11].isnull().any():
                 self.logging.info('В серийных номерах обнаружены пропуски, заполняем по соседнему')
                 for ind, (first, second) in enumerate(zip(df[0].to_numpy(), df[11].to_numpy())):
-                    if ind == 0 and pd.isna(second):
+                    if ind == 0 and second is None:
                         finding_set_num = first
                         for i in range(1, 100):
                             if finding_set_num != df.iloc[i, 0]:
@@ -61,15 +62,15 @@ class InsertTableData(QThread):  # Если требуется вставить 
                                 for_report['unloading']['text_err'].append(f'В выгрузке не заполнен серийный номер в'
                                                                            f' комплекте {first}')
                                 break
-                            if finding_set_num == df.iloc[i, 0] and pd.isna(df.iloc[i, 11]) is False:
+                            if finding_set_num == df.iloc[i, 0] and df.iloc[i, 11]:
                                 serial_number = df.iloc[i, 11]
                                 break
                     if set_number != first:
                         set_number = first
                         err_append = False
-                        if (not serial_number or serial_number != second) and pd.isna(second) is False:
+                        if (not serial_number or serial_number != second) and second:
                             serial_number = second
-                    if pd.isna(second):
+                    if second is None:
                         if serial_number:
                             self.logging.info(f'В строке {ind + 1} обнаружен пропуск')
                             if err_append is False:
@@ -81,22 +82,22 @@ class InsertTableData(QThread):  # Если требуется вставить 
                                                                        f' серийного номера,'
                                                                        f' заполнен по идентичному номеру комплекта')
                             df.loc[ind, 11] = serial_number
-            self.logging.info('Замена целочисленных серийников на текстовые с добавлением 00 в начале')
-            try:
-                df = df.astype({11: np.int})
-                df = df.astype({11: np.str})
-                df[11] = ['00' + element for element in df[11]]
-            except ValueError:
-                self.logging.info('Изменение серийников не удалось')
-                self.status.emit(f'Ошибка преобразования серийных номеров')
-                self.logging.info(
-                    "\n**************************************Finish**************************************\n")
-                self.progress.emit(0)
-                incoming_errors.append(f'Среди серийных номеров есть текстовые символы или полностью пропущенные'
-                                       f' значения в комплекте, проверьте выгрузку')
-                self.queue.put({'errors': incoming_errors})
-                self.errors.emit()
-                return
+            # self.logging.info('Замена целочисленных серийников на текстовые с добавлением 00 в начале')
+            # try:
+            #     df = df.astype({11: np.int})
+            #     df = df.astype({11: np.str})
+            #     df[11] = ['00' + element for element in df[11]]
+            # except ValueError:
+            #     self.logging.info('Изменение серийников не удалось')
+            #     self.status.emit(f'Ошибка преобразования серийных номеров')
+            #     self.logging.info(
+            #         "\n**************************************Finish**************************************\n")
+            #     self.progress.emit(0)
+            #     incoming_errors.append(f'Среди серийных номеров есть текстовые символы или полностью пропущенные'
+            #                            f' значения в комплекте, проверьте выгрузку')
+            #     self.queue.put({'errors': incoming_errors})
+            #     self.errors.emit()
+            #     return
             self.logging.info(f'Начинаем заполнение')
             for file in files:
                 self.status.emit(f'Обработка файла {file}')
