@@ -2,7 +2,6 @@ import os
 import pathlib
 import json
 
-import numpy as np
 import pandas as pd
 import docx
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
@@ -11,6 +10,7 @@ import datetime
 import traceback
 
 from PyQt5.QtCore import QThread, pyqtSignal
+from docx.shared import Pt
 from natsort import natsorted
 
 
@@ -59,8 +59,8 @@ class InsertTableData(QThread):  # Если требуется вставить 
                         for i in range(1, 100):
                             if finding_set_num != df.iloc[i, 0]:
                                 for_report['unloading']['errors'] = True
-                                for_report['unloading']['text_err'].append(f'В выгрузке не заполнен серийный номер в'
-                                                                           f' комплекте {first}')
+                                for_report['unloading']['text_err'] += [f'В выгрузке не заполнен серийный номер в'
+                                                                        f' комплекте {first}']
                                 break
                             if finding_set_num == df.iloc[i, 0] and df.iloc[i, 11]:
                                 serial_number = df.iloc[i, 11]
@@ -78,26 +78,10 @@ class InsertTableData(QThread):  # Если требуется вставить 
                                                        f' заполнен по идентичному номеру комплекта')
                                 err_append = True
                             for_report['unloading']['errors'] = True
-                            for_report['unloading']['text_err'].append(f'{first} - обнаружен пропуск'
-                                                                       f' серийного номера,'
-                                                                       f' заполнен по идентичному номеру комплекта')
+                            for_report['unloading']['text_err'] += [f'{first} - обнаружен пропуск'
+                                                                    f' серийного номера,'
+                                                                    f' заполнен по идентичному номеру комплекта']
                             df.loc[ind, 11] = serial_number
-            # self.logging.info('Замена целочисленных серийников на текстовые с добавлением 00 в начале')
-            # try:
-            #     df = df.astype({11: np.int})
-            #     df = df.astype({11: np.str})
-            #     df[11] = ['00' + element for element in df[11]]
-            # except ValueError:
-            #     self.logging.info('Изменение серийников не удалось')
-            #     self.status.emit(f'Ошибка преобразования серийных номеров')
-            #     self.logging.info(
-            #         "\n**************************************Finish**************************************\n")
-            #     self.progress.emit(0)
-            #     incoming_errors.append(f'Среди серийных номеров есть текстовые символы или полностью пропущенные'
-            #                            f' значения в комплекте, проверьте выгрузку')
-            #     self.queue.put({'errors': incoming_errors})
-            #     self.errors.emit()
-            #     return
             self.logging.info(f'Начинаем заполнение')
             for file in files:
                 self.status.emit(f'Обработка файла {file}')
@@ -146,14 +130,14 @@ class InsertTableData(QThread):  # Если требуется вставить 
                         self.progress.emit(int(progress))
                         continue
                     if serial_number and set_number and (index_serial_num != index_set_num):
-                        for_report['unloading']['text_error'].append(f'В выгрузке не заполнен серийный номер в'
-                                                                     f' комплекте {first}')
+                        for_report['unloading']['text_error'] += [f'В выгрузке не заполнен серийный номер в'
+                                                                  f' комплекте {set_number}']
                         self.logging.warning(f'Не совпадают индексы для серийных номеров и номера комплекта')
                         incoming_errors.append(f'Не совпадают индексы для серийных номеров и номера комплекта в'
                                                f' комплекте {set_number} и серийном номере {serial_number}')
                         for_report[file]['errors'] = True
-                        for_report[file]['text_err'].append('Не совпадают индексы для серийных номеров'
-                                                            ' и номера комплекта')
+                        for_report[file]['text_err'] += ['Не совпадают индексы для серийных номеров'
+                                                         ' и номера комплекта']
                         progress += percent
                         for_report['info']['errors'] += 1
                         self.progress.emit(int(progress))
@@ -163,46 +147,39 @@ class InsertTableData(QThread):  # Если требуется вставить 
                     doc = docx.Document(pathlib.Path(self.start_path, file))
                     table = doc.tables[0]
                     self.logging.info(f'Открыли файл, выбрали первую таблицу')
-                    try:
-                        if table.cell(1, 0).text.rpartition('s/n: ')[0]:
-                            table.cell(1, 0).text = table.cell(1, 0).text.rpartition('s/n: ')[0] +\
-                                                    table.cell(1, 0).text.rpartition('s/n: ')[1] +\
-                                                    df.iloc[number_index[0], 11]
-                        else:
-                            incoming_errors.append(f'{file} - в ячейке с серийным номером не '
-                                                   'найден необходимый разделитель («s/n: »)')
-                            for_report[file]['errors'] = True
-                            for_report[file]['text_err'].append('В ячейке с серийным номером не '
-                                                                'найден необходимый разделитель («s/n: »)')
-                            for_report['info']['errors'] += 1
-                            progress += percent
-                            continue
-                    except IndexError:
-                        incoming_errors.append(f'{file} - в первой таблице только заголовок')
-                        for_report[file]['errors'] = True
-                        for_report[file]['text_err'].append(f'В первой таблице только заголовок')
-                        for_report['info']['errors'] += 1
-                        progress += percent
-                        continue
-                    table.cell(1, 0).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-                    table.cell(1, 0).vertical_alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-                    for run in table.cell(1, 0).paragraphs[0].runs:
-                        run.font.bold = True
-                    for_report[file]['s/n'] = True
-                    self.logging.info(f'Заполнили вторую ячейку и отформатировали её')
+                    plus = 1  # Для подсчёта смещения, если есть вторая строка
+                    if len(table.rows) > 1 and 's/n:' in table.cell(1, 0).text:
+                        plus += 1
+                        table.cell(1, 0).text = f"{table.cell(1, 0).text.rpartition('s/n: ')[0]}" \
+                                                f" {table.cell(1, 0).text.rpartition('s/n: ')[1]}" \
+                                                f" {df.iloc[number_index[0], 11]}"
+                        table.cell(1, 0).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+                        table.cell(1, 0).vertical_alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+                        for run in table.cell(1, 0).paragraphs[0].runs:
+                            run.font.bold = True
+                        for_report[file]['s/n'] = True
+                        self.logging.info(f'Заполнили вторую ячейку и отформатировали её')
+                    elif len(table.rows) > 1:
+                        plus += 1
                     try:
                         control = {'compound': [True, 'состав'], 'manufacturer': [True, 'изготовитель'],
                                    'model': [True, 'модель'], 'factory number': [True, 'заводской номер']}
                         for index in range(len(number_index)):
+                            table.add_row()
                             for ind, name_dict in enumerate(control):
                                 if pd.isna(df.iloc[number_index[index], ind + 3]) is False:
-                                    table.cell(index + 2, ind).text = df.iloc[number_index[index], ind + 3]
-                                table.cell(index + 2, ind).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
-                                table.cell(index + 2, ind).vertical_alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+                                    table.cell(index + plus, ind).text = df.iloc[number_index[index], ind + 3]
+                                for run in table.cell(index + plus, ind).paragraphs[0].runs:
+                                    if ind == 0:
+                                        run.font.bold = True
+                                    run.font.size = Pt(14)
+                                table.cell(index + plus, ind).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+                                table.cell(index + plus, ind).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
+                                table.cell(index + plus, ind).vertical_alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                                 if pd.isna(df.iloc[number_index[index], ind + 3]) and control[name_dict][0]:
                                     for_report[file]['errors'] = True
-                                    for_report[file]['text_err'].append(f'У элемента выгрузки отсутствует'
-                                                                        f' {control[name_dict][1]}')
+                                    for_report[file]['text_err'] += [f'У элемента выгрузки отсутствует'
+                                                                     f' {control[name_dict][1]}']
                                     incoming_errors.append(f'У элемента выгрузки {file} отсутствует'
                                                            f' {control[name_dict][1]}')
                                     control[name_dict][0] = False
@@ -210,7 +187,7 @@ class InsertTableData(QThread):  # Если требуется вставить 
                             for_report[file][key] = True if control[key][0] else False
                     except IndexError:
                         for_report[file]['errors'] = True
-                        for_report[file]['text_err'].append('В выгрузке и таблице кол-во техники не совпадает')
+                        for_report[file]['text_err'] += ['В выгрузке и таблице кол-во техники не совпадает']
                         for_report['info']['errors'] += 1
                         progress += percent
                         for key_name in ['s/n', 'compound', 'manufacturer', 'model', 'factory number']:
@@ -224,7 +201,7 @@ class InsertTableData(QThread):  # Если требуется вставить 
                             self.logging.info(f'Сохранили новый файл')
                     except PermissionError:
                         for_report[file]['errors'] = True
-                        for_report[file]['text_err'].append(f'Не удалось сохранить документ {file}')
+                        for_report[file]['text_err'] += [f'Не удалось сохранить документ {file}']
                         for_report['info']['errors'] += 1
                         progress += percent
                         for key_name in ['s/n', 'compound', 'manufacturer', 'model', 'factory number']:
@@ -237,7 +214,7 @@ class InsertTableData(QThread):  # Если требуется вставить 
                             self.logging.info(f'Удалили старый файл')
                     except PermissionError:
                         for_report[file]['errors'] = True
-                        for_report[file]['text_err'].append(f'Не удалось удалить документ {file}')
+                        for_report[file]['text_err'] += [f'Не удалось удалить документ {file}']
                         for_report['info']['errors'] += 1
                         progress += percent
                 except BaseException as errors:
@@ -245,7 +222,7 @@ class InsertTableData(QThread):  # Если требуется вставить 
                     self.logging.error(f'Обработка файла {file} завершилась с ошибкой')
                     self.logging.error("Ошибка:\n " + str(errors) + '\n' + traceback.format_exc())
                     for_report[file]['errors'] = True
-                    for_report[file]['text_err'].append('Не обработан из-за непредвиденной ошибки')
+                    for_report[file]['text_err'] += ['Не обработан из-за непредвиденной ошибки']
                     for_report['info']['errors'] += 1
                 if for_report[file]['errors']:
                     for_report['info']['errors'] += 1
