@@ -148,6 +148,10 @@ class InsertTableData(QThread):  # Если требуется вставить 
                     table = doc.tables[0]
                     self.logging.info(f'Открыли файл, выбрали первую таблицу')
                     plus = 1  # Для подсчёта смещения, если есть вторая строка
+                    pt_size = 10
+                    for run in table.cell(0, 0).paragraphs[0].runs:
+                        pt_size = run.font.size.pt
+                        break
                     if len(table.rows) > 1 and 's/n:' in table.cell(1, 0).text:
                         plus += 1
                         table.cell(1, 0).text = f"{table.cell(1, 0).text.rpartition('s/n: ')[0]}" \
@@ -156,7 +160,7 @@ class InsertTableData(QThread):  # Если требуется вставить 
                         table.cell(1, 0).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                         table.cell(1, 0).vertical_alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                         for run in table.cell(1, 0).paragraphs[0].runs:
-                            run.font.bold = True
+                            run.font.size = Pt(pt_size)
                         for_report[file]['s/n'] = True
                         self.logging.info(f'Заполнили вторую ячейку и отформатировали её')
                     elif len(table.rows) > 1:
@@ -170,9 +174,7 @@ class InsertTableData(QThread):  # Если требуется вставить 
                                 if pd.isna(df.iloc[number_index[index], ind + 3]) is False:
                                     table.cell(index + plus, ind).text = df.iloc[number_index[index], ind + 3]
                                 for run in table.cell(index + plus, ind).paragraphs[0].runs:
-                                    if ind == 0:
-                                        run.font.bold = True
-                                    run.font.size = Pt(14)
+                                    run.font.size = Pt(pt_size)
                                 table.cell(index + plus, ind).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                                 table.cell(index + plus, ind).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                                 table.cell(index + plus, ind).vertical_alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
