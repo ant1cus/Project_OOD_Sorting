@@ -149,9 +149,16 @@ class InsertTableData(QThread):  # Если требуется вставить 
                     self.logging.info(f'Открыли файл, выбрали первую таблицу')
                     plus = 1  # Для подсчёта смещения, если есть вторая строка
                     pt_size = 10
-                    for run in table.cell(0, 0).paragraphs[0].runs:
-                        pt_size = run.font.size.pt
-                        break
+                    for column in range(len(table.columns)):
+                        for paragraph in table.cell(0, column).paragraphs:
+                            for run in paragraph.runs:
+                                if run is not None:
+                                    pt_size = run.font.size.pt
+                                    break
+                            if pt_size != 10:
+                                break
+                        if pt_size != 10:
+                            break
                     if len(table.rows) > 1 and 's/n:' in table.cell(1, 0).text:
                         plus += 1
                         table.cell(1, 0).text = f"{table.cell(1, 0).text.rpartition('s/n: ')[0]}" \
