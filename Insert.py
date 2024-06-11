@@ -157,7 +157,7 @@ class InsertTableData(QThread):  # Если требуется вставить 
                         table.cell(1, 0).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                         table.cell(1, 0).vertical_alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                         for run in table.cell(1, 0).paragraphs[0].runs:
-                            run.font.size = Pt(self.size)
+                            run.font.size = Pt(round(float(self.size), 1))
                         for_report[file]['s/n'] = True
                         self.logging.info(f'Заполнили вторую ячейку и отформатировали её')
                     elif len(table.rows) > 1:
@@ -171,7 +171,7 @@ class InsertTableData(QThread):  # Если требуется вставить 
                                 if pd.isna(df.iloc[number_index[index], ind + 3]) is False:
                                     table.cell(index + plus, ind).text = df.iloc[number_index[index], ind + 3]
                                 for run in table.cell(index + plus, ind).paragraphs[0].runs:
-                                    run.font.size = Pt(self.size)
+                                    run.font.size = Pt(round(float(self.size), 1))
                                 table.cell(index + plus, ind).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                                 table.cell(index + plus, ind).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                                 table.cell(index + plus, ind).vertical_alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
