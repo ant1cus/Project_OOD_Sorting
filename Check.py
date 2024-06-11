@@ -35,6 +35,8 @@ def check_data(line_data_file, line_start_folder, line_finish_folder, line_size)
     if len(os.listdir(finish_path)) > 0:
         return ['УПС!', 'Конечная папка не пуста, очистите директорию или укажите другую']
     size = line_size.text().strip()
+    if not size:
+        return ['УПС!', 'Не указан размер шрифта']
     for i in size:
         if i not in ['1', '2', '3', '4', '5', '6', '7', '8', '9', '0', '.']:
             return ['УПС!', 'Есть лишние символы в размере шрифта']
