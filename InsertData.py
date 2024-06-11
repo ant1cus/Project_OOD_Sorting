@@ -41,7 +41,8 @@ class MainWindow(QMainWindow, Main.Ui_MainWindow):  # Главное окно
         self.action_settings_default.triggered.connect(self.default_settings)
         self.list = {'path-path_data_file': ['Путь к файлу выгрузки', self.lineEdit_path_data_file],
                      'path-path_start_folder': ['Путь к документам', self.lineEdit_path_start_folder],
-                     'path-path_finish_folder': ['Путь к конечной папке', self.lineEdit_path_finish_folder]
+                     'path-path_finish_folder': ['Путь к конечной папке', self.lineEdit_path_finish_folder],
+                     'path-font_size': ['Размер шрифта', self.lineEdit_size]
                      }
         try:
             with open(pathlib.Path(pathlib.Path.cwd(), 'Настройки.txt'), "r", encoding='utf-8-sig') as f:
@@ -76,7 +77,7 @@ class MainWindow(QMainWindow, Main.Ui_MainWindow):  # Главное окно
 
     def insert_data(self):
         sending_data = check_data(self.lineEdit_path_data_file, self.lineEdit_path_start_folder,
-                                  self.lineEdit_path_finish_folder)
+                                  self.lineEdit_path_finish_folder, self.lineEdit_size)
         if isinstance(sending_data, list):
             self.on_message_changed(sending_data[0], sending_data[1])
             return

@@ -25,6 +25,7 @@ class InsertTableData(QThread):  # Если требуется вставить 
         self.path_file = incoming_data['path_file']
         self.start_path = incoming_data['start_path']
         self.finish_path = incoming_data['finish_path']
+        self.size = incoming_data['size']
         self.queue = incoming_data['queue']
         self.logging = incoming_data['logging']
 
@@ -148,17 +149,6 @@ class InsertTableData(QThread):  # Если требуется вставить 
                     table = doc.tables[0]
                     self.logging.info(f'Открыли файл, выбрали первую таблицу')
                     plus = 1  # Для подсчёта смещения, если есть вторая строка
-                    pt_size = 10
-                    for column in range(len(table.columns)):
-                        for paragraph in table.cell(0, column).paragraphs:
-                            for run in paragraph.runs:
-                                if run is not None:
-                                    pt_size = run.font.size.pt
-                                    break
-                            if pt_size != 10:
-                                break
-                        if pt_size != 10:
-                            break
                     if len(table.rows) > 1 and 's/n:' in table.cell(1, 0).text:
                         plus += 1
                         table.cell(1, 0).text = f"{table.cell(1, 0).text.rpartition('s/n: ')[0]}" \
@@ -167,7 +157,7 @@ class InsertTableData(QThread):  # Если требуется вставить 
                         table.cell(1, 0).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                         table.cell(1, 0).vertical_alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                         for run in table.cell(1, 0).paragraphs[0].runs:
-                            run.font.size = Pt(pt_size)
+                            run.font.size = Pt(self.size)
                         for_report[file]['s/n'] = True
                         self.logging.info(f'Заполнили вторую ячейку и отформатировали её')
                     elif len(table.rows) > 1:
@@ -181,7 +171,7 @@ class InsertTableData(QThread):  # Если требуется вставить 
                                 if pd.isna(df.iloc[number_index[index], ind + 3]) is False:
                                     table.cell(index + plus, ind).text = df.iloc[number_index[index], ind + 3]
                                 for run in table.cell(index + plus, ind).paragraphs[0].runs:
-                                    run.font.size = Pt(pt_size)
+                                    run.font.size = Pt(self.size)
                                 table.cell(index + plus, ind).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                                 table.cell(index + plus, ind).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                                 table.cell(index + plus, ind).vertical_alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
