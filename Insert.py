@@ -151,13 +151,14 @@ class InsertTableData(QThread):  # Если требуется вставить 
                     plus = 1  # Для подсчёта смещения, если есть вторая строка
                     if len(table.rows) > 1 and 's/n:' in table.cell(1, 0).text:
                         plus += 1
-                        table.cell(1, 0).text = f"{table.cell(1, 0).text.rpartition('s/n: ')[0]}" \
-                                                f" {table.cell(1, 0).text.rpartition('s/n: ')[1]}" \
+                        table.cell(1, 0).text = f"{table.cell(1, 0).text.rpartition('s/n:')[0]}" \
+                                                f" {table.cell(1, 0).text.rpartition('s/n:')[1]}" \
                                                 f" {df.iloc[number_index[0], 11]}"
                         table.cell(1, 0).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                         table.cell(1, 0).vertical_alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                         for run in table.cell(1, 0).paragraphs[0].runs:
                             run.font.size = Pt(round(float(self.size), 1))
+                            run.font.bold = True
                         for_report[file]['s/n'] = True
                         self.logging.info(f'Заполнили вторую ячейку и отформатировали её')
                     elif len(table.rows) > 1:
