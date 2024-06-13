@@ -152,8 +152,7 @@ class InsertTableData(QThread):  # Если требуется вставить 
                     if len(table.rows) > 1 and 's/n:' in table.cell(1, 0).text:
                         plus += 1
                         table.cell(1, 0).text = f"{table.cell(1, 0).text.rpartition('s/n:')[0]}" \
-                                                f" {table.cell(1, 0).text.rpartition('s/n:')[1]}" \
-                                                f" {df.iloc[number_index[0], 11]}"
+                                                f"s/n: {df.iloc[number_index[0], 11]}"
                         table.cell(1, 0).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                         table.cell(1, 0).vertical_alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
                         for run in table.cell(1, 0).paragraphs[0].runs:
