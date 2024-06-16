@@ -5,6 +5,7 @@ import json
 import pandas as pd
 import docx
 from docx.enum.text import WD_PARAGRAPH_ALIGNMENT
+from io import StringIO
 
 import datetime
 import traceback
@@ -44,7 +45,10 @@ class InsertTableData(QThread):  # Если требуется вставить 
             files = [file for file in os.listdir(self.start_path) if file.endswith('.docx') and '~' not in file]
             files = natsorted(files, key=lambda y: y.rpartition(' ')[2][:-5])
             percent = 100/len(files)
-            df = pd.read_csv(self.path_file, delimiter='|', encoding='ANSI', header=None, converters={0: str, 11: str})
+            with open(self.path_file) as f:
+                input_file = StringIO(f.read().replace('\"', '\\"'))
+                df = pd.read_csv(input_file, delimiter='|', encoding='ANSI', header=None,
+                                 converters={0: str, 11: str})
             self.logging.info('DataFrame заполнен')
             serial_number = ''
             incoming_errors = []
@@ -169,7 +173,8 @@ class InsertTableData(QThread):  # Если требуется вставить 
                             table.add_row()
                             for ind, name_dict in enumerate(control):
                                 if pd.isna(df.iloc[number_index[index], ind + 3]) is False:
-                                    table.cell(index + plus, ind).text = df.iloc[number_index[index], ind + 3]
+                                    table.cell(index + plus, ind).text = \
+                                        df.iloc[number_index[index], ind + 3].replace('\\', '')
                                 for run in table.cell(index + plus, ind).paragraphs[0].runs:
                                     run.font.size = Pt(round(float(self.size), 1))
                                 table.cell(index + plus, ind).paragraphs[0].alignment = WD_PARAGRAPH_ALIGNMENT.CENTER
