@@ -1,6 +1,7 @@
 import os
 import pathlib
 import json
+import re
 
 import pandas as pd
 import docx
@@ -27,8 +28,10 @@ class InsertTableData(QThread):  # Если требуется вставить 
         self.start_path = incoming_data['start_path']
         self.finish_path = incoming_data['finish_path']
         self.size = incoming_data['size']
+        self.exception = incoming_data['exception']
         self.queue = incoming_data['queue']
         self.logging = incoming_data['logging']
+        self.exception_val = [i.lower() for i in self.exception.values()]
 
     def run(self):
         try:
@@ -57,8 +60,17 @@ class InsertTableData(QThread):  # Если требуется вставить 
             err_append = False
             df[11] = [None if len(element) == 0 else element for element in df[11]]
             if df[11].isnull().any():
-                self.logging.info('В серийных номерах обнаружены пропуски, заполняем по соседнему')
+                self.logging.info('В серийных номерах обнаружены пропуски, заполняем по соседнему'
+                                  ' (если не в исключениях)')
                 for ind, (first, second) in enumerate(zip(df[0].to_numpy(), df[11].to_numpy())):
+                    exception_flag = False
+                    for device in self.exception_val:
+                        if second is None and re.findall(device, df.iloc[ind, 3].lower()):
+                            self.logging.info(f'Пропущенный серийный номер в комплекте {first} в исключениях.')
+                            exception_flag = True
+                            break
+                    if exception_flag:
+                        continue
                     if ind == 0 and second is None:
                         finding_set_num = first
                         for i in range(1, 100):
@@ -76,17 +88,18 @@ class InsertTableData(QThread):  # Если требуется вставить 
                         if (not serial_number or serial_number != second) and second:
                             serial_number = second
                     if second is None:
-                        if serial_number:
-                            self.logging.info(f'В строке {ind + 1} обнаружен пропуск')
-                            if err_append is False:
-                                incoming_errors.append(f'{first} - обнаружен пропуск серийного номера,'
-                                                       f' заполнен по идентичному номеру комплекта')
-                                err_append = True
-                            for_report['unloading']['errors'] = True
-                            for_report['unloading']['text_err'] += [f'{first} - обнаружен пропуск'
-                                                                    f' серийного номера,'
-                                                                    f' заполнен по идентичному номеру комплекта']
-                            df.loc[ind, 11] = serial_number
+                        # if serial_number:
+                        self.logging.info(f'В строке {ind + 1} обнаружен пропуск')
+                        if err_append is False:
+                            incoming_errors.append(f'{first} - обнаружен пропуск серийного номера,'
+                                                   f' заполнен по идентичному номеру комплекта')
+                            err_append = True
+                        for_report['unloading']['errors'] = True
+                        for_report['unloading']['text_err'] += [f'{first} - обнаружен пропуск'
+                                                                f' серийного номера,'
+                                                                f' заполнен по идентичному номеру комплекта']
+                        df.loc[ind, 11] = serial_number
+
             self.logging.info(f'Начинаем заполнение')
             for file in files:
                 self.status.emit(f'Обработка файла {file}')
@@ -135,8 +148,8 @@ class InsertTableData(QThread):  # Если требуется вставить 
                         self.progress.emit(int(progress))
                         continue
                     if serial_number and set_number and (index_serial_num != index_set_num):
-                        for_report['unloading']['text_error'] += [f'В выгрузке не заполнен серийный номер в'
-                                                                  f' комплекте {set_number}']
+                        for_report['unloading']['text_err'] += [f'В выгрузке не заполнен серийный номер в'
+                                                                f' комплекте {set_number}']
                         self.logging.warning(f'Не совпадают индексы для серийных номеров и номера комплекта')
                         incoming_errors.append(f'Не совпадают индексы для серийных номеров и номера комплекта в'
                                                f' комплекте {set_number} и серийном номере {serial_number}')

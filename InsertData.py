@@ -1,5 +1,4 @@
 import datetime
-import psutil
 import json
 import pathlib
 import queue
@@ -15,6 +14,7 @@ from Default import DefaultWindow
 from Check import check_data
 from Insert import InsertTableData
 from Report import GetReport
+from ExceptionSn import ExceptionWindow
 
 
 class MainWindow(QMainWindow, Main.Ui_MainWindow):  # Главное окно
@@ -39,20 +39,29 @@ class MainWindow(QMainWindow, Main.Ui_MainWindow):  # Главное окно
         self.pushButton_start.clicked.connect(self.insert_data)
         self.pushButton_open_report.clicked.connect(self.report)
         self.action_settings_default.triggered.connect(self.default_settings)
+        self.action_exception_sn.triggered.connect(self.exception_sn)
         self.list = {'path-path_data_file': ['Путь к файлу выгрузки', self.lineEdit_path_data_file],
                      'path-path_start_folder': ['Путь к документам', self.lineEdit_path_start_folder],
                      'path-path_finish_folder': ['Путь к конечной папке', self.lineEdit_path_finish_folder],
                      'path-font_size': ['Размер шрифта', self.lineEdit_size]
                      }
         try:
-            with open(pathlib.Path(pathlib.Path.cwd(), 'Настройки.txt'), "r", encoding='utf-8-sig') as f:
+            with open(pathlib.Path(self.default_path, 'Настройки.txt'), "r", encoding='utf-8-sig') as f:
                 dict_load = json.load(f)
                 self.data = dict_load['widget_settings']
+                if 'exception_gadget' not in dict_load:
+                    with open(pathlib.Path(self.default_path, 'Настройки.txt'), "w", encoding='utf-8-sig') as f:
+                        data_insert = {"widget_settings": self.data, "exception_gadget": {}}
+                        json.dump(data_insert, f, ensure_ascii=False, sort_keys=True, indent=4)
+                    self.exception = {}
+                else:
+                    self.exception = dict_load['exception_gadget']
         except FileNotFoundError:
-            with open(pathlib.Path(pathlib.Path.cwd(), 'Настройки.txt'), "w", encoding='utf-8-sig') as f:
-                data_insert = {"widget_settings": {}}
+            with open(pathlib.Path(self.default_path, 'Настройки.txt'), "w", encoding='utf-8-sig') as f:
+                data_insert = {"widget_settings": {}, "exception_gadget": {}}
                 json.dump(data_insert, f, ensure_ascii=False, sort_keys=True, indent=4)
                 self.data = {}
+                self.exception = {}
         self.default_data(self.data)
 
     def browse(self, line_edit):  # Для кнопки открыть
@@ -84,6 +93,7 @@ class MainWindow(QMainWindow, Main.Ui_MainWindow):  # Главное окно
         # Если всё прошло запускаем поток
         sending_data['logging'], sending_data['queue'] = logging, self.queue
         sending_data['default_path'] = self.default_path
+        sending_data['exception'] = self.exception
         self.thread = InsertTableData(sending_data)
         self.thread.status.connect(self.statusBar().showMessage)
         self.thread.progress.connect(self.progressBar.setValue)
@@ -123,6 +133,16 @@ class MainWindow(QMainWindow, Main.Ui_MainWindow):  # Главное окно
         self.close()
         window_add = DefaultWindow(self, self.default_path, self.list)
         window_add.show()
+
+    def exception_sn(self):
+        window_add = ExceptionWindow(self, self.exception)
+        window_add.show()
+
+    def rewrite_exception(self, exception):
+        self.exception = exception
+        with open(pathlib.Path(self.default_path, 'Настройки.txt'), "w", encoding='utf-8-sig') as f:
+            data_insert = {"widget_settings": self.data, "exception_gadget": self.exception}
+            json.dump(data_insert, f, ensure_ascii=False, sort_keys=True, indent=4)
 
     def default_data(self, incoming_data):
         for element in self.list:

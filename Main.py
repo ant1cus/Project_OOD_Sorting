@@ -150,7 +150,10 @@ class Ui_MainWindow(object):
         self.action_settings_default.setObjectName("action_settings_default")
         self.action_settings_table = QtWidgets.QAction(MainWindow)
         self.action_settings_table.setObjectName("action_settings_table")
+        self.action_exception_sn = QtWidgets.QAction(MainWindow)
+        self.action_exception_sn.setObjectName("action_exception_sn")
         self.menu.addAction(self.action_settings_default)
+        self.menu.addAction(self.action_exception_sn)
         self.menubar.addAction(self.menu.menuAction())
 
         self.retranslateUi(MainWindow)
@@ -189,3 +192,4 @@ class Ui_MainWindow(object):
         self.menu.setTitle(_translate("MainWindow", "Настройки"))
         self.action_settings_default.setText(_translate("MainWindow", "Настройки по умолчанию"))
         self.action_settings_table.setText(_translate("MainWindow", "Настройки таблицы"))
+        self.action_exception_sn.setText(_translate("MainWindow", "Исключения для s/n"))

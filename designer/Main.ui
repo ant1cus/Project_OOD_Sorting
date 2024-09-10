@@ -221,6 +221,7 @@
      <string>Настройки</string>
     </property>
     <addaction name="action_settings_default"/>
+    <addaction name="action_exception_sn"/>
    </widget>
    <addaction name="menu"/>
   </widget>
@@ -233,6 +234,11 @@
   <action name="action_settings_table">
    <property name="text">
     <string>Настройки таблицы</string>
+   </property>
+  </action>
+  <action name="action_exception_sn">
+   <property name="text">
+    <string>Исключения для s/n</string>
    </property>
   </action>
  </widget>
