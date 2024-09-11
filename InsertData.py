@@ -63,6 +63,7 @@ class MainWindow(QMainWindow, Main.Ui_MainWindow):  # Главное окно
                 self.data = {}
                 self.exception = {}
         self.default_data(self.data)
+        self.window_add = ExceptionWindow(self, self.exception)
 
     def browse(self, line_edit):  # Для кнопки открыть
         if 'folder' in self.sender().objectName():
@@ -135,8 +136,8 @@ class MainWindow(QMainWindow, Main.Ui_MainWindow):  # Главное окно
         window_add.show()
 
     def exception_sn(self):
-        window_add = ExceptionWindow(self, self.exception)
-        window_add.show()
+        self.window_add = ExceptionWindow(self, self.exception)
+        self.window_add.show()
 
     def rewrite_exception(self, exception):
         self.exception = exception
