@@ -25,6 +25,8 @@ def check_data(line_data_file, line_start_folder, line_finish_folder, line_size)
         return ['УПС!', 'В пути к папке с начальными документами указан файл']
     if os.path.exists(start_path) is False:
         return ['УПС!', 'Не удается найти папку с начальными документами']
+    if not os.listdir(start_path):
+        return ['УПС!', 'В указанной папке нет документов для вставки данных']
     finish_path = line_finish_folder.text().strip()
     if not finish_path:
         return ['УПС!', 'Путь к конечной папке пуст']

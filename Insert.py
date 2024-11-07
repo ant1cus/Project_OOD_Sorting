@@ -51,7 +51,7 @@ class InsertTableData(QThread):  # Если требуется вставить 
             with open(self.path_file) as f:
                 input_file = StringIO(f.read().replace('\"', '\\"'))
                 df = pd.read_csv(input_file, delimiter='|', encoding='ANSI', header=None,
-                                 converters={0: str, 11: str})
+                                 converters={0: str, 6: str, 11: str})
             self.logging.info('DataFrame заполнен')
             serial_number = ''
             incoming_errors = []
@@ -166,7 +166,8 @@ class InsertTableData(QThread):  # Если требуется вставить 
                     table = doc.tables[0]
                     self.logging.info(f'Открыли файл, выбрали первую таблицу')
                     plus = 1  # Для подсчёта смещения, если есть вторая строка
-                    if len(table.rows) > 1 and 's/n:' in table.cell(1, 0).text:
+                    if len(table.rows) > 1 and 's/n:' in table.cell(1, 0).text and \
+                            pd.isna(df.iloc[number_index[0], 11]) is False:
                         plus += 1
                         table.cell(1, 0).text = f"{table.cell(1, 0).text.rpartition('s/n:')[0]}" \
                                                 f"s/n: {df.iloc[number_index[0], 11]}"
